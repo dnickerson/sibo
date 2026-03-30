@@ -15,20 +15,20 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1410;
-    --surface: #161d17;
-    --surface2: #1e2820;
-    --border: #2a3a2c;
-    --accent: #7cb87e;
-    --accent2: #b8d4b9;
-    --accent3: #4a8f4d;
-    --warn: #c4956a;
-    --warn2: #e8c4a0;
-    --danger: #c46a6a;
-    --text: #d4e4d5;
-    --text2: #8a9e8b;
-    --text3: #5a6e5b;
-    --gold: #c4a96a;
+    --bg: #0d1510;
+    --surface: #172019;
+    --surface2: #1f2d22;
+    --border: #3a5040;
+    --accent: #82cc84;
+    --accent2: #c0e0c2;
+    --accent3: #52a055;
+    --warn: #d4a878;
+    --warn2: #f0d0b0;
+    --danger: #d47878;
+    --text: #eaf5eb;
+    --text2: #b0ccb1;
+    --text3: #8aaa8b;
+    --gold: #d4b878;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,19 +38,14 @@
     color: var(--text);
     font-family: 'DM Mono', monospace;
     min-height: 100vh;
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.6;
   }
 
-  /* Grain overlay */
+  /* Grain overlay — removed for readability on mobile */
   body::before {
     content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.4;
+    display: none;
   }
 
   .app {
@@ -78,13 +73,13 @@
 
   .app-title {
     font-family: 'DM Serif Display', serif;
-    font-size: 22px;
+    font-size: 24px;
     color: var(--accent2);
     letter-spacing: -0.5px;
   }
 
   .app-subtitle {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text3);
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -93,13 +88,13 @@
 
   .date-display {
     text-align: right;
-    font-size: 11px;
-    color: var(--text3);
+    font-size: 13px;
+    color: var(--text2);
     font-family: 'DM Mono', monospace;
   }
 
   .current-time {
-    font-size: 18px;
+    font-size: 20px;
     color: var(--accent);
     font-weight: 500;
     display: block;
@@ -124,8 +119,8 @@
     display: flex;
     justify-content: space-between;
     margin-top: 6px;
-    font-size: 10px;
-    color: var(--text3);
+    font-size: 12px;
+    color: var(--text2);
   }
 
   /* Navigation */
@@ -140,12 +135,12 @@
 
   .nav-tab {
     flex: 1;
-    padding: 12px 8px;
+    padding: 13px 8px;
     text-align: center;
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--text3);
+    color: var(--text2);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.2s;
@@ -188,10 +183,10 @@
   }
 
   .time-label {
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--text3);
+    color: var(--text2);
     white-space: nowrap;
   }
 
@@ -206,8 +201,8 @@
   }
 
   .time-badge {
-    font-size: 10px;
-    color: var(--text3);
+    font-size: 12px;
+    color: var(--text2);
     white-space: nowrap;
   }
 
@@ -304,10 +299,10 @@
   }
 
   .reminder-name {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text);
     font-weight: 500;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
   }
 
   .completed .reminder-name {
@@ -316,14 +311,14 @@
   }
 
   .reminder-detail {
-    font-size: 10px;
-    color: var(--text3);
+    font-size: 12px;
+    color: var(--text2);
     line-height: 1.4;
   }
 
   .reminder-tag {
-    font-size: 9px;
-    padding: 2px 6px;
+    font-size: 10px;
+    padding: 3px 7px;
     border-radius: 10px;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -350,10 +345,10 @@
   }
 
   .symptom-card-title {
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--text3);
+    color: var(--text2);
     margin-bottom: 14px;
   }
 
@@ -364,8 +359,8 @@
   .symptom-label {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
-    color: var(--text2);
+    font-size: 13px;
+    color: var(--text);
     margin-bottom: 6px;
   }
 
@@ -381,19 +376,19 @@
 
   .scale-btn {
     flex: 1;
-    height: 28px;
+    height: 36px;
     border: 1px solid var(--border);
     background: var(--surface2);
-    color: var(--text3);
+    color: var(--text2);
     border-radius: 3px;
     cursor: pointer;
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     transition: all 0.15s;
   }
 
   .scale-btn:hover { border-color: var(--accent3); color: var(--text); }
-  .scale-btn.selected { background: var(--accent3); border-color: var(--accent); color: var(--bg); font-weight: 500; }
+  .scale-btn.selected { background: var(--accent3); border-color: var(--accent); color: #fff; font-weight: 500; }
 
   /* Bristol scale */
   .bristol-grid {
@@ -406,11 +401,11 @@
     aspect-ratio: 1;
     border: 1px solid var(--border);
     background: var(--surface2);
-    color: var(--text3);
+    color: var(--text2);
     border-radius: 3px;
     cursor: pointer;
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -418,19 +413,19 @@
   }
 
   .bristol-btn:hover { border-color: var(--accent3); }
-  .bristol-btn.selected { background: var(--accent3); border-color: var(--accent); color: var(--bg); }
+  .bristol-btn.selected { background: var(--accent3); border-color: var(--accent); color: #fff; }
   .bristol-btn.type1 { --col: #c46a6a; }
   .bristol-btn.type2 { --col: #c4956a; }
   .bristol-btn.type3 { --col: #c4b96a; }
-  .bristol-btn.type4 { --col: #7cb87e; }
+  .bristol-btn.type4 { --col: #52a055; }
   .bristol-btn.type5 { --col: #c4b96a; }
   .bristol-btn.type6 { --col: #c4956a; }
   .bristol-btn.type7 { --col: #c46a6a; }
   .bristol-btn.selected { background: var(--col, var(--accent3)); border-color: var(--col, var(--accent)); }
 
   .bristol-legend {
-    font-size: 9px;
-    color: var(--text3);
+    font-size: 11px;
+    color: var(--text2);
     text-align: center;
     margin-top: 6px;
     line-height: 1.4;
@@ -442,10 +437,10 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     color: var(--text);
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     resize: none;
     line-height: 1.5;
     transition: border-color 0.2s;
@@ -460,19 +455,19 @@
 
   .save-btn {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: var(--accent3);
     border: none;
     border-radius: 4px;
-    color: var(--bg);
+    color: #fff;
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 2px;
     text-transform: uppercase;
     cursor: pointer;
     margin-top: 12px;
     transition: all 0.2s;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .save-btn:hover { background: var(--accent); }
@@ -499,7 +494,7 @@
   }
 
   .history-date {
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--accent);
@@ -510,7 +505,7 @@
   }
 
   .history-compliance {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text2);
   }
 
@@ -529,8 +524,8 @@
   }
 
   .metric-label {
-    font-size: 8px;
-    color: var(--text3);
+    font-size: 10px;
+    color: var(--text2);
     letter-spacing: 1px;
     text-transform: uppercase;
     display: block;
@@ -538,14 +533,14 @@
   }
 
   .metric-value {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--accent2);
     font-weight: 500;
   }
 
   .history-note {
-    font-size: 10px;
-    color: var(--text3);
+    font-size: 12px;
+    color: var(--text2);
     font-style: italic;
     border-top: 1px solid var(--border);
     padding-top: 8px;
@@ -573,8 +568,8 @@
   }
 
   .summary-subtitle {
-    font-size: 10px;
-    color: var(--text3);
+    font-size: 11px;
+    color: var(--text2);
     letter-spacing: 1.5px;
     text-transform: uppercase;
     margin-bottom: 14px;
@@ -591,12 +586,12 @@
   .trend-row:last-child { border-bottom: none; }
 
   .trend-label {
-    font-size: 11px;
-    color: var(--text2);
+    font-size: 13px;
+    color: var(--text);
   }
 
   .trend-value {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--accent);
     font-weight: 500;
   }
@@ -636,9 +631,9 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
-    color: var(--text3);
+    color: var(--text2);
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
     cursor: pointer;
@@ -677,10 +672,10 @@
   .section-pad { padding: 0 20px; }
 
   .week-label {
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--text3);
+    color: var(--text2);
     padding: 12px 20px 4px;
   }
 
@@ -688,13 +683,13 @@
     display: block;
     width: calc(100% - 40px);
     margin: 0 20px 12px;
-    padding: 10px;
+    padding: 12px;
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 4px;
-    color: var(--text3);
+    color: var(--text2);
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
     cursor: pointer;
@@ -706,12 +701,12 @@
 
   .info-pill {
     display: inline-block;
-    font-size: 9px;
+    font-size: 10px;
     padding: 2px 7px;
     border-radius: 10px;
-    background: rgba(124,184,126,0.1);
-    color: var(--accent);
-    border: 1px solid rgba(124,184,126,0.2);
+    background: rgba(130,204,132,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(130,204,132,0.3);
     margin-left: 6px;
     vertical-align: middle;
   }
