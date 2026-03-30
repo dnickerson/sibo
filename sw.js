@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sibo-protocol-v1';
+const CACHE_NAME = 'sibo-protocol-v2';
 
 const ASSETS = [
   '/sibo/',
@@ -44,6 +44,16 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Navigation requests (app launch, reload) — always serve index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('/sibo/index.html').then(cached => {
+        return cached || fetch('/sibo/index.html');
+      })
     );
     return;
   }
