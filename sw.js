@@ -1,9 +1,9 @@
 const CACHE_NAME = 'sibo-protocol-v1';
 
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
+  '/sibo/',
+  '/sibo/index.html',
+  '/sibo/manifest.json',
   'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap'
 ];
 
