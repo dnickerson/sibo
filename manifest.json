@@ -3,6 +3,7 @@
   "short_name": "SIBO Protocol",
   "description": "Personal SIBO treatment protocol tracker and symptom logger",
   "start_url": "/sibo/",
+  "scope": "/sibo/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1410",
