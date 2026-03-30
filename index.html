@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SIBO Protocol">
+<meta name="theme-color" content="#0f1410">
+<meta name="description" content="Personal SIBO treatment protocol tracker">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>SIBO Protocol Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1410;
+    --surface: #161d17;
+    --surface2: #1e2820;
+    --border: #2a3a2c;
+    --accent: #7cb87e;
+    --accent2: #b8d4b9;
+    --accent3: #4a8f4d;
+    --warn: #c4956a;
+    --warn2: #e8c4a0;
+    --danger: #c46a6a;
+    --text: #d4e4d5;
+    --text2: #8a9e8b;
+    --text3: #5a6e5b;
+    --gold: #c4a96a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 100px 0;
+  }
+
+  /* Header */
+  .header {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .app-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent2);
+    letter-spacing: -0.5px;
+  }
+
+  .app-subtitle {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .date-display {
+    text-align: right;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .current-time {
+    font-size: 18px;
+    color: var(--accent);
+    font-weight: 500;
+    display: block;
+  }
+
+  /* Progress bar */
+  .daily-progress {
+    background: var(--surface2);
+    border-radius: 2px;
+    height: 3px;
+    overflow: hidden;
+  }
+
+  .daily-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  /* Navigation */
+  .nav {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 112px;
+    z-index: 99;
+  }
+
+  .nav-tab {
+    flex: 1;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Sections */
+  .section { display: none; padding: 0; }
+  .section.active { display: block; }
+
+  /* Timeline */
+  .timeline {
+    padding: 16px 20px;
+  }
+
+  .time-block {
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .time-block-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .time-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+
+  .time-label.current {
+    color: var(--accent);
+  }
+
+  .time-divider {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .time-badge {
+    font-size: 10px;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+
+  .current-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Reminder items */
+  .reminder-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .reminder-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+
+  .reminder-item.required::before { background: var(--accent3); }
+  .reminder-item.warn::before { background: var(--warn); }
+  .reminder-item.info::before { background: var(--text3); }
+
+  .reminder-item.completed {
+    opacity: 0.5;
+    background: var(--bg);
+  }
+
+  .reminder-item.completed::before {
+    background: var(--accent) !important;
+  }
+
+  .reminder-item:hover {
+    border-color: var(--accent3);
+    background: var(--surface2);
+  }
+
+  .check-box {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.2s;
+  }
+
+  .completed .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check-icon {
+    display: none;
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .completed .check-icon { display: block; }
+
+  .reminder-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reminder-name {
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .completed .reminder-name {
+    text-decoration: line-through;
+    color: var(--text3);
+  }
+
+  .reminder-detail {
+    font-size: 10px;
+    color: var(--text3);
+    line-height: 1.4;
+  }
+
+  .reminder-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .tag-required { background: rgba(74,143,77,0.15); color: var(--accent); }
+  .tag-discuss { background: rgba(196,149,106,0.15); color: var(--warn); }
+  .tag-prn { background: rgba(90,110,91,0.15); color: var(--text3); }
+  .tag-behavior { background: rgba(196,106,106,0.15); color: var(--danger); }
+
+  /* Symptom tracker */
+  .symptom-section {
+    padding: 16px 20px;
+  }
+
+  .symptom-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .symptom-card-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  .symptom-row {
+    margin-bottom: 14px;
+  }
+
+  .symptom-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+
+  .symptom-value {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .scale-buttons {
+    display: flex;
+    gap: 4px;
+  }
+
+  .scale-btn {
+    flex: 1;
+    height: 28px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text3);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+
+  .scale-btn:hover { border-color: var(--accent3); color: var(--text); }
+  .scale-btn.selected { background: var(--accent3); border-color: var(--accent); color: var(--bg); font-weight: 500; }
+
+  /* Bristol scale */
+  .bristol-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .bristol-btn {
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text3);
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .bristol-btn:hover { border-color: var(--accent3); }
+  .bristol-btn.selected { background: var(--accent3); border-color: var(--accent); color: var(--bg); }
+  .bristol-btn.type1 { --col: #c46a6a; }
+  .bristol-btn.type2 { --col: #c4956a; }
+  .bristol-btn.type3 { --col: #c4b96a; }
+  .bristol-btn.type4 { --col: #7cb87e; }
+  .bristol-btn.type5 { --col: #c4b96a; }
+  .bristol-btn.type6 { --col: #c4956a; }
+  .bristol-btn.type7 { --col: #c46a6a; }
+  .bristol-btn.selected { background: var(--col, var(--accent3)); border-color: var(--col, var(--accent)); }
+
+  .bristol-legend {
+    font-size: 9px;
+    color: var(--text3);
+    text-align: center;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  /* Notes */
+  .notes-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    resize: none;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+
+  .notes-input:focus {
+    outline: none;
+    border-color: var(--accent3);
+  }
+
+  .notes-input::placeholder { color: var(--text3); }
+
+  .save-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent3);
+    border: none;
+    border-radius: 4px;
+    color: var(--bg);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .save-btn:hover { background: var(--accent); }
+
+  /* History */
+  .history-section {
+    padding: 16px 20px;
+  }
+
+  .history-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text3);
+    font-size: 11px;
+    line-height: 1.8;
+  }
+
+  .history-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .history-date {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .history-compliance {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .history-metrics {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .history-metric {
+    text-align: center;
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 6px 4px;
+  }
+
+  .metric-label {
+    font-size: 8px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .metric-value {
+    font-size: 14px;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .history-note {
+    font-size: 10px;
+    color: var(--text3);
+    font-style: italic;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  /* Summary */
+  .summary-section {
+    padding: 16px 20px;
+  }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .summary-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    color: var(--accent2);
+    margin-bottom: 4px;
+  }
+
+  .summary-subtitle {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .trend-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .trend-row:last-child { border-bottom: none; }
+
+  .trend-label {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .trend-value {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 30px;
+  }
+
+  .trend-bar {
+    flex: 1;
+    background: var(--accent3);
+    border-radius: 2px 2px 0 0;
+    min-height: 2px;
+    transition: height 0.3s ease;
+    opacity: 0.7;
+  }
+
+  .trend-bar.today { opacity: 1; background: var(--accent); }
+
+  /* Floating action */
+  .fab-area {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 440px;
+    z-index: 200;
+  }
+
+  .reset-day-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-day-btn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--accent);
+    color: var(--bg);
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    z-index: 500;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section-pad { padding: 0 20px; }
+
+  .week-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 12px 20px 4px;
+  }
+
+  .export-btn {
+    display: block;
+    width: calc(100% - 40px);
+    margin: 0 20px 12px;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .export-btn:hover { border-color: var(--accent3); color: var(--accent); }
+
+  .info-pill {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(124,184,126,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(124,184,126,0.2);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="app-title">SIBO Protocol</div>
+        <div class="app-subtitle">Treatment Tracker</div>
+      </div>
+      <div class="date-display">
+        <span class="current-time" id="clockDisplay">--:--</span>
+        <span id="dateDisplay">--</span>
+      </div>
+    </div>
+    <div class="daily-progress">
+      <div class="daily-progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-label">
+      <span id="progressLabel">0 of 0 completed today</span>
+      <span id="progressPct">0%</span>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-tab active" onclick="showSection('today')">Today</button>
+    <button class="nav-tab" onclick="showSection('symptoms')">Symptoms</button>
+    <button class="nav-tab" onclick="showSection('history')">History</button>
+    <button class="nav-tab" onclick="showSection('summary')">Summary</button>
+  </div>
+
+  <!-- TODAY -->
+  <div class="section active" id="section-today">
+    <div class="timeline" id="timelineContainer"></div>
+  </div>
+
+  <!-- SYMPTOMS -->
+  <div class="section" id="section-symptoms">
+    <div class="symptom-section">
+      <div class="symptom-card">
+        <div class="symptom-card-title">Daily Symptom Log</div>
+
+        <div class="symptom-row">
+          <div class="symptom-label">
+            <span>Bloating</span>
+            <span class="symptom-value" id="bloating-val">—</span>
+          </div>
+          <div class="scale-buttons" id="bloating-scale">
+            <button class="scale-btn" onclick="setScale('bloating',1,this)">1</button>
+            <button class="scale-btn" onclick="setScale('bloating',2,this)">2</button>
+            <button class="scale-btn" onclick="setScale('bloating',3,this)">3</button>
+            <button class="scale-btn" onclick="setScale('bloating',4,this)">4</button>
+            <button class="scale-btn" onclick="setScale('bloating',5,this)">5</button>
+          </div>
+        </div>
+
+        <div class="symptom-row">
+          <div class="symptom-label">
+            <span>Gas Pain</span>
+            <span class="symptom-value" id="pain-val">—</span>
+          </div>
+          <div class="scale-buttons" id="pain-scale">
+            <button class="scale-btn" onclick="setScale('pain',1,this)">1</button>
+            <button class="scale-btn" onclick="setScale('pain',2,this)">2</button>
+            <button class="scale-btn" onclick="setScale('pain',3,this)">3</button>
+            <button class="scale-btn" onclick="setScale('pain',4,this)">4</button>
+            <button class="scale-btn" onclick="setScale('pain',5,this)">5</button>
+          </div>
+        </div>
+
+        <div class="symptom-row">
+          <div class="symptom-label">
+            <span>Fatigue</span>
+            <span class="symptom-value" id="fatigue-val">—</span>
+          </div>
+          <div class="scale-buttons" id="fatigue-scale">
+            <button class="scale-btn" onclick="setScale('fatigue',1,this)">1</button>
+            <button class="scale-btn" onclick="setScale('fatigue',2,this)">2</button>
+            <button class="scale-btn" onclick="setScale('fatigue',3,this)">3</button>
+            <button class="scale-btn" onclick="setScale('fatigue',4,this)">4</button>
+            <button class="scale-btn" onclick="setScale('fatigue',5,this)">5</button>
+          </div>
+        </div>
+
+        <div class="symptom-row">
+          <div class="symptom-label">
+            <span>Overall Wellbeing</span>
+            <span class="symptom-value" id="overall-val">—</span>
+          </div>
+          <div class="scale-buttons" id="overall-scale">
+            <button class="scale-btn" onclick="setScale('overall',1,this)">1</button>
+            <button class="scale-btn" onclick="setScale('overall',2,this)">2</button>
+            <button class="scale-btn" onclick="setScale('overall',3,this)">3</button>
+            <button class="scale-btn" onclick="setScale('overall',4,this)">4</button>
+            <button class="scale-btn" onclick="setScale('overall',5,this)">5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="symptom-card">
+        <div class="symptom-card-title">Bristol Stool Scale <span class="info-pill">1=hard · 4=ideal · 7=liquid</span></div>
+        <div class="bristol-grid" id="bristol-grid">
+          <button class="bristol-btn type1" onclick="setBristol(1,this)">1</button>
+          <button class="bristol-btn type2" onclick="setBristol(2,this)">2</button>
+          <button class="bristol-btn type3" onclick="setBristol(3,this)">3</button>
+          <button class="bristol-btn type4" onclick="setBristol(4,this)">4</button>
+          <button class="bristol-btn type5" onclick="setBristol(5,this)">5</button>
+          <button class="bristol-btn type6" onclick="setBristol(6,this)">6</button>
+          <button class="bristol-btn type7" onclick="setBristol(7,this)">7</button>
+        </div>
+        <div class="bristol-legend">Constipation ← 1·2·3 · 4 · 5·6·7 → Diarrhea</div>
+      </div>
+
+      <div class="symptom-card">
+        <div class="symptom-card-title">Notes <span class="info-pill">optional</span></div>
+        <textarea class="notes-input" id="symptomNotes" rows="3" placeholder="Any observations, dietary deviations, unusual symptoms..."></textarea>
+        <button class="save-btn" onclick="saveSymptoms()">Save Today's Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="section" id="section-history">
+    <div class="history-section">
+      <button class="export-btn" onclick="exportData()">↓ Export Data (JSON)</button>
+      <div id="historyContainer"></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="section" id="section-summary">
+    <div class="summary-section">
+      <div class="summary-card">
+        <div class="summary-title">7-Day Overview</div>
+        <div class="summary-subtitle">Symptom Trends</div>
+        <div id="trendContainer"></div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-title">Protocol Compliance</div>
+        <div class="summary-subtitle">Last 7 Days</div>
+        <div id="complianceContainer"></div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-title">Breath Test Target</div>
+        <div class="summary-subtitle">Baseline Values</div>
+        <div class="trend-row">
+          <span class="trend-label">Hydrogen (H2)</span>
+          <span class="trend-value">40.34 ppm</span>
+        </div>
+        <div class="trend-row">
+          <span class="trend-label">Methane (CH4)</span>
+          <span class="trend-value">68.51 ppm</span>
+        </div>
+        <div class="trend-row">
+          <span class="trend-label">H2S</span>
+          <span class="trend-value">2.23 ppm</span>
+        </div>
+        <div class="trend-row">
+          <span class="trend-label">Retest Due</span>
+          <span class="trend-value" id="retestDate">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fab-area">
+  <button class="reset-day-btn" onclick="resetDay()">Reset Today's Checklist</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'sibo_tracker_v2';
+
+const SCHEDULE = [
+  {
+    id: 'pre_breakfast',
+    label: '7:30 AM',
+    title: 'Pre-Breakfast',
+    targetHour: 7.5,
+    items: [
+      { id: 'omeprazole', name: 'Omeprazole 20mg', detail: '30–60 min before eating — essential for Barrett\'s protection', type: 'required', tag: 'required' },
+      { id: 'iberogast_am', name: 'Iberogast', detail: '20 drops in warm water', type: 'required', tag: 'required' },
+      { id: 'ibguard_am', name: 'IBgard', detail: '1 capsule — small intestine release peppermint', type: 'required', tag: 'required' },
+    ]
+  },
+  {
+    id: 'breakfast',
+    label: '8:00 AM',
+    title: 'Breakfast',
+    targetHour: 8,
+    items: [
+      { id: 'vitd3_am', name: 'Vitamin D3 5,000 IU', detail: 'Take with largest fat-containing meal', type: 'required', tag: 'required' },
+      { id: 'centrum', name: 'Centrum Multivitamin', detail: 'Take with meal — provides Vitamin K and broad micronutrient support', type: 'required', tag: 'required' },
+      { id: 'ginger_am', name: 'Ginger Tablet', detail: '5mg gingeroids — prokinetic support', type: 'required', tag: 'required' },
+      { id: 'papaya_am', name: 'Papaya Enzyme', detail: 'With meal — digestive support post-SIBO', type: 'warn', tag: 'discuss' },
+    ]
+  },
+  {
+    id: 'pre_lunch',
+    label: '12:30 PM',
+    title: 'Pre-Lunch',
+    targetHour: 12.5,
+    items: [
+      { id: 'iberogast_pm', name: 'Iberogast', detail: '20 drops in warm water', type: 'required', tag: 'required' },
+      { id: 'ibguard_pm', name: 'IBgard', detail: '1 capsule', type: 'required', tag: 'required' },
+    ]
+  },
+  {
+    id: 'lunch',
+    label: '1:00 PM',
+    title: 'Lunch',
+    targetHour: 13,
+    items: [
+      { id: 'ginger_pm', name: 'Ginger Tablet', detail: '5mg gingeroids', type: 'required', tag: 'required' },
+      { id: 'papaya_pm', name: 'Papaya Enzyme', detail: 'With meal', type: 'warn', tag: 'discuss' },
+      { id: 'pepitas_lunch', name: 'Pepitas', detail: '1oz max — magnesium, zinc, tryptophan source', type: 'info', tag: 'prn' },
+    ]
+  },
+  {
+    id: 'post_lunch_walk',
+    label: '1:30 PM',
+    title: 'Post-Lunch',
+    targetHour: 13.5,
+    items: [
+      { id: 'walk_lunch', name: 'Post-Meal Walk', detail: '10–15 min within 30 min of eating', type: 'behavior', tag: 'behavior' },
+      { id: 'banatrol_pm', name: 'Banatrol', detail: 'If diarrhea symptoms present — 1 packet in water', type: 'info', tag: 'prn' },
+    ]
+  },
+  {
+    id: 'pre_dinner',
+    label: '5:30 PM',
+    title: 'Pre-Dinner',
+    targetHour: 17.5,
+    items: [
+      { id: 'iberogast_eve', name: 'Iberogast', detail: '20 drops in warm water', type: 'required', tag: 'required' },
+      { id: 'ibguard_eve', name: 'IBgard', detail: '1 capsule', type: 'required', tag: 'required' },
+    ]
+  },
+  {
+    id: 'dinner',
+    label: '6:00 PM',
+    title: 'Dinner',
+    targetHour: 18,
+    items: [
+      { id: 'ginger_eve', name: 'Ginger Tablet', detail: '5mg gingeroids', type: 'required', tag: 'required' },
+      { id: 'papaya_eve', name: 'Papaya Enzyme', detail: 'With meal', type: 'warn', tag: 'discuss' },
+      { id: 'pepitas_dinner', name: 'Pepitas', detail: '1oz max with dinner', type: 'info', tag: 'prn' },
+      { id: 'gasx_eve', name: 'Gas-X (if needed)', detail: 'After meal if bloating — more effective than bedtime', type: 'info', tag: 'prn' },
+    ]
+  },
+  {
+    id: 'evening',
+    label: '7:00 PM',
+    title: 'Evening Walk',
+    targetHour: 19,
+    items: [
+      { id: 'walk_eve', name: 'Evening Walk', detail: '30 min — your established routine', type: 'behavior', tag: 'behavior' },
+      { id: 'ball_stretch', name: 'Exercise Ball Stretch', detail: 'Optional — 2+ hrs after dinner, gentle extension', type: 'info', tag: 'prn' },
+    ]
+  },
+  {
+    id: 'bedtime',
+    label: '9:30 PM',
+    title: 'Bedtime',
+    targetHour: 21.5,
+    items: [
+      { id: 'magnesium', name: 'Magnesium Glycinate', detail: '200–400mg — motility + Omeprazole depletion support', type: 'warn', tag: 'discuss' },
+      { id: 'ldn', name: 'Low-Dose Naltrexone', detail: '1.5–4.5mg — discuss with doctor (MMC stimulation)', type: 'warn', tag: 'discuss' },
+    ]
+  },
+  {
+    id: 'anytime',
+    label: 'As Needed',
+    title: 'PRN / As Needed',
+    targetHour: 99,
+    items: [
+      { id: 'gasx_prn', name: 'Gas-X', detail: 'Simethicone — take after meals, not at bedtime', type: 'info', tag: 'prn' },
+      { id: 'banatrol_prn', name: 'Banatrol', detail: 'For diarrhea episodes — 2–3x daily during flare', type: 'info', tag: 'prn' },
+      { id: 'prucalopride', name: 'Prucalopride (Motegrity)', detail: '1–2mg daily — discuss with doctor (constipation)', type: 'warn', tag: 'discuss' },
+    ]
+  }
+];
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getTodayChecks() {
+  const data = loadData();
+  const key = getTodayKey();
+  return data[key]?.checks || {};
+}
+
+function setCheck(itemId, value) {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]) data[key] = { checks: {}, symptoms: null };
+  data[key].checks[itemId] = value;
+  saveData(data);
+}
+
+// ─── CLOCK ──────────────────────────────────────────────────────────────────
+
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clockDisplay').textContent = `${h}:${m}`;
+  document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+  // Retest date (6 weeks from treatment end — approx 2 weeks ago from today)
+  const retest = new Date(now);
+  retest.setDate(retest.getDate() + 28);
+  document.getElementById('retestDate').textContent = retest.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+// ─── TIMELINE ────────────────────────────────────────────────────────────────
+
+function getCurrentHour() {
+  const now = new Date();
+  return now.getHours() + now.getMinutes() / 60;
+}
+
+function renderTimeline() {
+  const checks = getTodayChecks();
+  const currentHour = getCurrentHour();
+  const container = document.getElementById('timelineContainer');
+  let html = '';
+  let total = 0, done = 0;
+
+  SCHEDULE.forEach(block => {
+    const isPast = block.targetHour < currentHour;
+    const isCurrent = Math.abs(block.targetHour - currentHour) < 1;
+
+    html += `<div class="time-block">`;
+    html += `<div class="time-block-header">`;
+    if (isCurrent) html += `<div class="current-indicator"></div>`;
+    html += `<div class="time-label ${isCurrent ? 'current' : ''}">${block.title}</div>`;
+    html += `<div class="time-divider"></div>`;
+    html += `<div class="time-badge">${block.label}</div>`;
+    html += `</div>`;
+
+    block.items.forEach(item => {
+      const isChecked = !!checks[item.id];
+      if (item.tag !== 'prn') { total++; if (isChecked) done++; }
+      const tagLabels = { required: 'Active', discuss: 'Discuss w/ MD', prn: 'As Needed', behavior: 'Behavior' };
+      html += `
+        <div class="reminder-item ${item.type} ${isChecked ? 'completed' : ''}" onclick="toggleCheck('${item.id}', this)">
+          <div class="check-box"><span class="check-icon">✓</span></div>
+          <div class="reminder-content">
+            <div class="reminder-name">${item.name}</div>
+            <div class="reminder-detail">${item.detail}</div>
+          </div>
+          <div class="reminder-tag tag-${item.tag}">${tagLabels[item.tag]}</div>
+        </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+  updateProgress(done, total);
+}
+
+function toggleCheck(itemId, el) {
+  const isNowChecked = !el.classList.contains('completed');
+  setCheck(itemId, isNowChecked);
+  el.classList.toggle('completed', isNowChecked);
+  const checks = getTodayChecks();
+  let total = 0, done = 0;
+  SCHEDULE.forEach(b => b.items.forEach(i => {
+    if (i.tag !== 'prn') { total++; if (checks[i.id]) done++; }
+  }));
+  updateProgress(done, total);
+  showToast(isNowChecked ? '✓ Marked complete' : 'Unmarked');
+}
+
+function updateProgress(done, total) {
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${done} of ${total} completed today`;
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+
+// ─── SYMPTOMS ────────────────────────────────────────────────────────────────
+
+const symptomState = { bloating: null, pain: null, fatigue: null, overall: null, bristol: null };
+
+function setScale(metric, val, btn) {
+  symptomState[metric] = val;
+  document.getElementById(`${metric}-val`).textContent = val + '/5';
+  btn.closest('.scale-buttons').querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function setBristol(val, btn) {
+  symptomState.bristol = val;
+  document.querySelectorAll('.bristol-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function saveSymptoms() {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]) data[key] = { checks: {}, symptoms: null };
+  const checks = getTodayChecks();
+  let total = 0, done = 0;
+  SCHEDULE.forEach(b => b.items.forEach(i => {
+    if (i.tag !== 'prn') { total++; if (checks[i.id]) done++; }
+  }));
+  data[key].symptoms = {
+    ...symptomState,
+    notes: document.getElementById('symptomNotes').value,
+    compliance: total > 0 ? Math.round((done/total)*100) : 0,
+    savedAt: new Date().toISOString()
+  };
+  saveData(data);
+  showToast('✓ Symptoms saved');
+  renderHistory();
+  renderSummary();
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+
+function renderHistory() {
+  const data = loadData();
+  const keys = Object.keys(data).sort().reverse();
+  const container = document.getElementById('historyContainer');
+
+  if (keys.length === 0) {
+    container.innerHTML = `<div class="history-empty">No history yet.<br>Complete today's log to begin tracking.</div>`;
+    return;
+  }
+
+  let html = '';
+  keys.forEach(key => {
+    const entry = data[key];
+    if (!entry.symptoms) return;
+    const s = entry.symptoms;
+    const d = new Date(key);
+    const dateStr = d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    html += `
+      <div class="history-entry">
+        <div class="history-date">
+          <span>${dateStr}</span>
+          <span class="history-compliance">${s.compliance ?? '—'}% compliance</span>
+        </div>
+        <div class="history-metrics">
+          <div class="history-metric">
+            <span class="metric-label">Bloat</span>
+            <span class="metric-value">${s.bloating ?? '—'}</span>
+          </div>
+          <div class="history-metric">
+            <span class="metric-label">Pain</span>
+            <span class="metric-value">${s.pain ?? '—'}</span>
+          </div>
+          <div class="history-metric">
+            <span class="metric-label">Fatigue</span>
+            <span class="metric-value">${s.fatigue ?? '—'}</span>
+          </div>
+          <div class="history-metric">
+            <span class="metric-label">Overall</span>
+            <span class="metric-value">${s.overall ?? '—'}</span>
+          </div>
+          <div class="history-metric">
+            <span class="metric-label">Bristol</span>
+            <span class="metric-value">${s.bristol ?? '—'}</span>
+          </div>
+        </div>
+        ${s.notes ? `<div class="history-note">${s.notes}</div>` : ''}
+      </div>`;
+  });
+
+  container.innerHTML = html || `<div class="history-empty">No logged symptom entries yet.</div>`;
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────────────
+
+function renderSummary() {
+  const data = loadData();
+  const keys = Object.keys(data).sort().slice(-7);
+  const metrics = ['bloating','pain','fatigue','overall'];
+  const labels = { bloating: 'Bloating', pain: 'Gas Pain', fatigue: 'Fatigue', overall: 'Wellbeing' };
+
+  // Trends
+  let trendHtml = '';
+  metrics.forEach(m => {
+    const vals = keys.map(k => data[k]?.symptoms?.[m]).filter(v => v !== null && v !== undefined);
+    if (vals.length === 0) {
+      trendHtml += `<div class="trend-row"><span class="trend-label">${labels[m]}</span><span class="trend-value" style="color:var(--text3)">No data</span></div>`;
+      return;
+    }
+    const avg = (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
+    const trend = vals.length > 1 ? (vals[vals.length-1] - vals[0]) : 0;
+    const arrow = trend < -0.3 ? ' ↓' : trend > 0.3 ? ' ↑' : ' →';
+    const color = m === 'overall' ? (trend >= 0 ? 'var(--accent)' : 'var(--danger)') : (trend <= 0 ? 'var(--accent)' : 'var(--danger)');
+    trendHtml += `
+      <div class="trend-row">
+        <span class="trend-label">${labels[m]}</span>
+        <span class="trend-value" style="color:${color}">${avg}/5${arrow}</span>
+      </div>`;
+  });
+  document.getElementById('trendContainer').innerHTML = trendHtml || '<div style="color:var(--text3);font-size:11px;padding:8px 0">Log symptoms daily to see trends</div>';
+
+  // Compliance
+  let compHtml = '';
+  if (keys.length === 0) {
+    compHtml = '<div style="color:var(--text3);font-size:11px;padding:8px 0">No compliance data yet</div>';
+  } else {
+    const compVals = keys.map(k => data[k]?.symptoms?.compliance ?? null).filter(v => v !== null);
+    if (compVals.length > 0) {
+      const avg = Math.round(compVals.reduce((a,b)=>a+b,0)/compVals.length);
+      compHtml = `
+        <div class="trend-row"><span class="trend-label">7-Day Average</span><span class="trend-value">${avg}%</span></div>
+        <div class="trend-row"><span class="trend-label">Days Logged</span><span class="trend-value">${compVals.length}</span></div>
+        <div class="trend-row"><span class="trend-label">Best Day</span><span class="trend-value">${Math.max(...compVals)}%</span></div>`;
+    } else {
+      compHtml = '<div style="color:var(--text3);font-size:11px;padding:8px 0">Save daily logs to track compliance</div>';
+    }
+  }
+  document.getElementById('complianceContainer').innerHTML = compHtml;
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'history') renderHistory();
+  if (id === 'summary') renderSummary();
+}
+
+// ─── UTILITIES ───────────────────────────────────────────────────────────────
+
+function resetDay() {
+  if (!confirm('Reset all checkboxes for today?')) return;
+  const data = loadData();
+  const key = getTodayKey();
+  if (data[key]) data[key].checks = {};
+  saveData(data);
+  renderTimeline();
+  showToast('Day reset');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function exportData() {
+  const data = loadData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sibo-tracker-${getTodayKey()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Data exported');
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+updateClock();
+setInterval(updateClock, 30000);
+renderTimeline();
+setInterval(renderTimeline, 60000);
+
+// ─── SERVICE WORKER ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
+
+// ─── INSTALL PROMPT ──────────────────────────────────────────────────────────
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => { if (deferredPrompt) showInstallBanner(); }, 3000);
+});
+
+function showInstallBanner() {
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:440px;background:#1e2820;border:1px solid #4a8f4d;border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:300;font-family:DM Mono,monospace;';
+  banner.innerHTML = '<div style="flex:1"><div style="font-size:12px;color:#b8d4b9;margin-bottom:3px">Install as App</div><div style="font-size:10px;color:#5a6e5b">Add SIBO Protocol to your home screen</div></div><button onclick="installApp()" style="padding:8px 14px;background:#4a8f4d;border:none;border-radius:4px;color:#0f1410;font-family:DM Mono,monospace;font-size:10px;letter-spacing:1px;cursor:pointer;">INSTALL</button><button onclick="document.getElementById(\'installBanner\').remove()" style="background:none;border:none;color:#5a6e5b;cursor:pointer;font-size:16px;padding:0 4px;">×</button>';
+  document.body.appendChild(banner);
+}
+
+async function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.remove();
+  if (outcome === 'accepted') showToast('✓ App installed');
+}
+
+// Restore symptom UI if already logged today
+(function restoreSymptoms() {
+  const data = loadData();
+  const key = getTodayKey();
+  const s = data[key]?.symptoms;
+  if (!s) return;
+  ['bloating','pain','fatigue','overall'].forEach(m => {
+    if (s[m]) {
+      symptomState[m] = s[m];
+      document.getElementById(`${m}-val`).textContent = s[m] + '/5';
+      const btns = document.querySelectorAll(`#${m}-scale .scale-btn`);
+      if (btns[s[m]-1]) btns[s[m]-1].classList.add('selected');
+    }
+  });
+  if (s.bristol) {
+    symptomState.bristol = s.bristol;
+    const btns = document.querySelectorAll('.bristol-btn');
+    if (btns[s.bristol-1]) btns[s.bristol-1].classList.add('selected');
+  }
+  if (s.notes) document.getElementById('symptomNotes').value = s.notes;
+})();
+</script>
+</body>
+</html>
