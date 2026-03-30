@@ -710,6 +710,48 @@
     margin-left: 6px;
     vertical-align: middle;
   }
+
+  .bristol-entry-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 10px;
+    background: var(--surface2);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+
+  .bristol-entry-type { color: var(--accent2); font-weight: 500; }
+  .bristol-entry-time { color: var(--text3); font-size: 11px; }
+
+  .log-entry-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+
+  .log-entry-btn:hover { border-color: var(--accent3); }
+
+  .recorded-at {
+    font-size: 11px;
+    color: var(--text3);
+    margin: 8px 0 0;
+    text-align: right;
+    letter-spacing: 0.5px;
+  }
+
+  .recorded-at span { color: var(--accent2); }
 </style>
 </head>
 <body>
@@ -719,7 +761,7 @@
     <div class="header-top">
       <div>
         <div class="app-title">SIBO Protocol</div>
-        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.1</span></div>
+        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.2</span></div>
       </div>
       <div class="date-display">
         <span class="current-time" id="clockDisplay">--:--</span>
@@ -822,12 +864,15 @@
           <button class="bristol-btn type7" onclick="setBristol(7,this)">7</button>
         </div>
         <div class="bristol-legend">Constipation ← 1·2·3 · 4 · 5·6·7 → Diarrhea</div>
+        <button class="log-entry-btn" onclick="logBristolEntry()">+ Log Bristol Entry</button>
+        <div id="bristol-log-list"></div>
       </div>
 
       <div class="symptom-card">
         <div class="symptom-card-title">Notes <span class="info-pill">optional</span></div>
         <textarea class="notes-input" id="symptomNotes" rows="3" placeholder="Any observations, dietary deviations, unusual symptoms..."></textarea>
-        <button class="save-btn" onclick="saveSymptoms()">Save Today's Log</button>
+        <div id="symptoms-recorded-at" class="recorded-at" style="display:none">Last saved: <span id="symptoms-saved-time"></span></div>
+        <button class="save-btn" onclick="saveSymptoms()">Save Symptom Log</button>
       </div>
     </div>
   </div>
@@ -1128,6 +1173,57 @@ function setBristol(val, btn) {
   btn.classList.add('selected');
 }
 
+function fmtTime(isoStr) {
+  const d = new Date(isoStr);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function fmtDateTime(isoStr) {
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function logBristolEntry() {
+  if (!symptomState.bristol) { showToast('Select a Bristol type first'); return; }
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]) data[key] = { checks: {}, symptoms: null };
+  if (!data[key].bristolLog) data[key].bristolLog = [];
+  data[key].bristolLog.push({ type: symptomState.bristol, at: new Date().toISOString() });
+  saveData(data);
+  // deselect
+  document.querySelectorAll('.bristol-btn').forEach(b => b.classList.remove('selected'));
+  symptomState.bristol = null;
+  renderBristolLog();
+  showToast('✓ Bristol entry logged');
+}
+
+function renderBristolLog() {
+  const data = loadData();
+  const key = getTodayKey();
+  const log = data[key]?.bristolLog || [];
+  const container = document.getElementById('bristol-log-list');
+  if (!container) return;
+  if (log.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = log.slice().reverse().map((entry, i) => `
+    <div class="bristol-entry-item">
+      <span class="bristol-entry-type">Type ${entry.type}</span>
+      <span class="bristol-entry-time">${fmtTime(entry.at)}</span>
+      <button onclick="removeBristolEntry(${log.length - 1 - i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function removeBristolEntry(idx) {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]?.bristolLog) return;
+  data[key].bristolLog.splice(idx, 1);
+  saveData(data);
+  renderBristolLog();
+  showToast('Entry removed');
+}
+
 function saveSymptoms() {
   const data = loadData();
   const key = getTodayKey();
@@ -1137,13 +1233,21 @@ function saveSymptoms() {
   SCHEDULE.forEach(b => b.items.forEach(i => {
     if (i.tag !== 'prn') { total++; if (checks[i.id]) done++; }
   }));
+  const now = new Date().toISOString();
   data[key].symptoms = {
     ...symptomState,
     notes: document.getElementById('symptomNotes').value,
     compliance: total > 0 ? Math.round((done/total)*100) : 0,
-    savedAt: new Date().toISOString()
+    savedAt: now
   };
   saveData(data);
+  // Show saved timestamp
+  const savedEl = document.getElementById('symptoms-recorded-at');
+  const savedTimeEl = document.getElementById('symptoms-saved-time');
+  if (savedEl && savedTimeEl) {
+    savedTimeEl.textContent = fmtDateTime(now);
+    savedEl.style.display = 'block';
+  }
   showToast('✓ Symptoms saved');
   renderHistory();
   renderSummary();
@@ -1168,6 +1272,10 @@ function renderHistory() {
     const s = entry.symptoms;
     const d = new Date(key);
     const dateStr = d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    const bristolLog = entry.bristolLog || [];
+    const bristolSummary = bristolLog.length > 0
+      ? bristolLog.map(b => `Type ${b.type} <span style="color:var(--text3)">${fmtTime(b.at)}</span>`).join(' · ')
+      : null;
     html += `
       <div class="history-entry">
         <div class="history-date">
@@ -1192,10 +1300,12 @@ function renderHistory() {
             <span class="metric-value">${s.overall ?? '—'}</span>
           </div>
           <div class="history-metric">
-            <span class="metric-label">Bristol</span>
-            <span class="metric-value">${s.bristol ?? '—'}</span>
+            <span class="metric-label">Entries</span>
+            <span class="metric-value">${bristolLog.length || '—'}</span>
           </div>
         </div>
+        ${bristolSummary ? `<div class="history-note" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;font-style:normal"><span style="color:var(--text3);font-size:10px;letter-spacing:1px;text-transform:uppercase">Bristol · </span>${bristolSummary}</div>` : ''}
+        ${s.savedAt ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-top:6px">Saved ${fmtTime(s.savedAt)}</div>` : ''}
         ${s.notes ? `<div class="history-note">${s.notes}</div>` : ''}
       </div>`;
   });
@@ -1264,13 +1374,30 @@ function showSection(id) {
 // ─── UTILITIES ───────────────────────────────────────────────────────────────
 
 function resetDay() {
-  if (!confirm('Reset all checkboxes for today?')) return;
-  const data = loadData();
-  const key = getTodayKey();
-  if (data[key]) data[key].checks = {};
-  saveData(data);
-  renderTimeline();
-  showToast('Day reset');
+  showConfirmModal('Reset all checkboxes for today?', () => {
+    const data = loadData();
+    const key = getTodayKey();
+    if (data[key]) data[key].checks = {};
+    saveData(data);
+    renderTimeline();
+    showToast('Day reset');
+  });
+}
+
+function showConfirmModal(message, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;max-width:340px;width:100%;font-family:'DM Mono',monospace;">
+      <div style="font-size:14px;color:var(--text);margin-bottom:20px;line-height:1.6;">${message}</div>
+      <div style="display:flex;gap:10px;">
+        <button id="confirm-cancel" style="flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Cancel</button>
+        <button id="confirm-ok" style="flex:1;padding:12px;background:var(--danger);border:none;border-radius:4px;color:#fff;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">Reset</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#confirm-cancel').onclick = () => document.body.removeChild(overlay);
+  overlay.querySelector('#confirm-ok').onclick = () => { document.body.removeChild(overlay); onConfirm(); };
 }
 
 function showToast(msg) {
@@ -1339,21 +1466,26 @@ async function installApp() {
   const data = loadData();
   const key = getTodayKey();
   const s = data[key]?.symptoms;
-  if (!s) return;
-  ['bloating','pain','fatigue','overall'].forEach(m => {
-    if (s[m]) {
-      symptomState[m] = s[m];
-      document.getElementById(`${m}-val`).textContent = s[m] + '/5';
-      const btns = document.querySelectorAll(`#${m}-scale .scale-btn`);
-      if (btns[s[m]-1]) btns[s[m]-1].classList.add('selected');
+  if (s) {
+    ['bloating','pain','fatigue','overall'].forEach(m => {
+      if (s[m]) {
+        symptomState[m] = s[m];
+        document.getElementById(`${m}-val`).textContent = s[m] + '/5';
+        const btns = document.querySelectorAll(`#${m}-scale .scale-btn`);
+        if (btns[s[m]-1]) btns[s[m]-1].classList.add('selected');
+      }
+    });
+    if (s.notes) document.getElementById('symptomNotes').value = s.notes;
+    if (s.savedAt) {
+      const savedEl = document.getElementById('symptoms-recorded-at');
+      const savedTimeEl = document.getElementById('symptoms-saved-time');
+      if (savedEl && savedTimeEl) {
+        savedTimeEl.textContent = fmtDateTime(s.savedAt);
+        savedEl.style.display = 'block';
+      }
     }
-  });
-  if (s.bristol) {
-    symptomState.bristol = s.bristol;
-    const btns = document.querySelectorAll('.bristol-btn');
-    if (btns[s.bristol-1]) btns[s.bristol-1].classList.add('selected');
   }
-  if (s.notes) document.getElementById('symptomNotes').value = s.notes;
+  renderBristolLog();
 })();
 </script>
 </body>
