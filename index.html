@@ -761,7 +761,7 @@
     <div class="header-top">
       <div>
         <div class="app-title">SIBO Protocol</div>
-        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.2</span></div>
+        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.3</span></div>
       </div>
       <div class="date-display">
         <span class="current-time" id="clockDisplay">--:--</span>
@@ -796,10 +796,7 @@
         <div class="symptom-card-title">Daily Symptom Log</div>
 
         <div class="symptom-row">
-          <div class="symptom-label">
-            <span>Bloating</span>
-            <span class="symptom-value" id="bloating-val">—</span>
-          </div>
+          <div class="symptom-label"><span>Bloating</span></div>
           <div class="scale-buttons" id="bloating-scale">
             <button class="scale-btn" onclick="setScale('bloating',1,this)">1</button>
             <button class="scale-btn" onclick="setScale('bloating',2,this)">2</button>
@@ -807,13 +804,12 @@
             <button class="scale-btn" onclick="setScale('bloating',4,this)">4</button>
             <button class="scale-btn" onclick="setScale('bloating',5,this)">5</button>
           </div>
+          <button class="log-entry-btn" onclick="logSymptomEntry('bloating')">+ Log Entry</button>
+          <div id="bloating-log-list"></div>
         </div>
 
         <div class="symptom-row">
-          <div class="symptom-label">
-            <span>Gas Pain</span>
-            <span class="symptom-value" id="pain-val">—</span>
-          </div>
+          <div class="symptom-label"><span>Gas Pain</span></div>
           <div class="scale-buttons" id="pain-scale">
             <button class="scale-btn" onclick="setScale('pain',1,this)">1</button>
             <button class="scale-btn" onclick="setScale('pain',2,this)">2</button>
@@ -821,13 +817,12 @@
             <button class="scale-btn" onclick="setScale('pain',4,this)">4</button>
             <button class="scale-btn" onclick="setScale('pain',5,this)">5</button>
           </div>
+          <button class="log-entry-btn" onclick="logSymptomEntry('pain')">+ Log Entry</button>
+          <div id="pain-log-list"></div>
         </div>
 
         <div class="symptom-row">
-          <div class="symptom-label">
-            <span>Fatigue</span>
-            <span class="symptom-value" id="fatigue-val">—</span>
-          </div>
+          <div class="symptom-label"><span>Fatigue</span></div>
           <div class="scale-buttons" id="fatigue-scale">
             <button class="scale-btn" onclick="setScale('fatigue',1,this)">1</button>
             <button class="scale-btn" onclick="setScale('fatigue',2,this)">2</button>
@@ -835,13 +830,25 @@
             <button class="scale-btn" onclick="setScale('fatigue',4,this)">4</button>
             <button class="scale-btn" onclick="setScale('fatigue',5,this)">5</button>
           </div>
+          <button class="log-entry-btn" onclick="logSymptomEntry('fatigue')">+ Log Entry</button>
+          <div id="fatigue-log-list"></div>
         </div>
 
         <div class="symptom-row">
-          <div class="symptom-label">
-            <span>Overall Wellbeing</span>
-            <span class="symptom-value" id="overall-val">—</span>
+          <div class="symptom-label"><span>Abdominal Tightness</span></div>
+          <div class="scale-buttons" id="tightness-scale">
+            <button class="scale-btn" onclick="setScale('tightness',1,this)">1</button>
+            <button class="scale-btn" onclick="setScale('tightness',2,this)">2</button>
+            <button class="scale-btn" onclick="setScale('tightness',3,this)">3</button>
+            <button class="scale-btn" onclick="setScale('tightness',4,this)">4</button>
+            <button class="scale-btn" onclick="setScale('tightness',5,this)">5</button>
           </div>
+          <button class="log-entry-btn" onclick="logSymptomEntry('tightness')">+ Log Entry</button>
+          <div id="tightness-log-list"></div>
+        </div>
+
+        <div class="symptom-row">
+          <div class="symptom-label"><span>Overall Wellbeing</span></div>
           <div class="scale-buttons" id="overall-scale">
             <button class="scale-btn" onclick="setScale('overall',1,this)">1</button>
             <button class="scale-btn" onclick="setScale('overall',2,this)">2</button>
@@ -849,6 +856,8 @@
             <button class="scale-btn" onclick="setScale('overall',4,this)">4</button>
             <button class="scale-btn" onclick="setScale('overall',5,this)">5</button>
           </div>
+          <button class="log-entry-btn" onclick="logSymptomEntry('overall')">+ Log Entry</button>
+          <div id="overall-log-list"></div>
         </div>
       </div>
 
@@ -1156,11 +1165,11 @@ function updateProgress(done, total) {
 
 // ─── SYMPTOMS ────────────────────────────────────────────────────────────────
 
-const symptomState = { bloating: null, pain: null, fatigue: null, overall: null, bristol: null };
+const SYMPTOM_METRICS = ['bloating', 'pain', 'fatigue', 'tightness', 'overall'];
+const symptomState = { bloating: null, pain: null, fatigue: null, tightness: null, overall: null, bristol: null };
 
 function setScale(metric, val, btn) {
   symptomState[metric] = val;
-  document.getElementById(`${metric}-val`).textContent = val + '/5';
   btn.closest('.scale-buttons').querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
 }
@@ -1169,6 +1178,52 @@ function setBristol(val, btn) {
   symptomState.bristol = val;
   document.querySelectorAll('.bristol-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
+}
+
+function logSymptomEntry(metric) {
+  if (!symptomState[metric]) { showToast('Select a value first'); return; }
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]) data[key] = { checks: {}, symptoms: null };
+  if (!data[key].symptomLog) data[key].symptomLog = {};
+  if (!data[key].symptomLog[metric]) data[key].symptomLog[metric] = [];
+  data[key].symptomLog[metric].push({ value: symptomState[metric], at: new Date().toISOString() });
+  saveData(data);
+  // deselect buttons
+  document.querySelectorAll(`#${metric}-scale .scale-btn`).forEach(b => b.classList.remove('selected'));
+  symptomState[metric] = null;
+  renderSymptomLog(metric);
+  showToast('✓ Entry logged');
+}
+
+function renderSymptomLog(metric) {
+  const data = loadData();
+  const key = getTodayKey();
+  const log = data[key]?.symptomLog?.[metric] || [];
+  const container = document.getElementById(`${metric}-log-list`);
+  if (!container) return;
+  if (log.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = log.slice().reverse().map((entry, i) => `
+    <div class="bristol-entry-item">
+      <span class="bristol-entry-type">${entry.value}/5</span>
+      <span class="bristol-entry-time">${fmtTime(entry.at)}</span>
+      <button onclick="removeSymptomEntry('${metric}', ${log.length - 1 - i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function removeSymptomEntry(metric, idx) {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]?.symptomLog?.[metric]) return;
+  data[key].symptomLog[metric].splice(idx, 1);
+  saveData(data);
+  renderSymptomLog(metric);
+  showToast('Entry removed');
+}
+
+function renderAllSymptomLogs() {
+  SYMPTOM_METRICS.forEach(m => renderSymptomLog(m));
+  renderBristolLog();
 }
 
 function fmtTime(isoStr) {
@@ -1232,14 +1287,20 @@ function saveSymptoms() {
     if (i.tag !== 'prn') { total++; if (checks[i.id]) done++; }
   }));
   const now = new Date().toISOString();
+  // Derive latest value per metric from the log for summary/history
+  const symLog = data[key].symptomLog || {};
+  const latest = {};
+  SYMPTOM_METRICS.forEach(m => {
+    const entries = symLog[m] || [];
+    latest[m] = entries.length > 0 ? entries[entries.length - 1].value : null;
+  });
   data[key].symptoms = {
-    ...symptomState,
+    ...latest,
     notes: document.getElementById('symptomNotes').value,
     compliance: total > 0 ? Math.round((done/total)*100) : 0,
     savedAt: now
   };
   saveData(data);
-  // Show saved timestamp
   const savedEl = document.getElementById('symptoms-recorded-at');
   const savedTimeEl = document.getElementById('symptoms-saved-time');
   if (savedEl && savedTimeEl) {
@@ -1280,13 +1341,13 @@ function renderHistory() {
           <span>${dateStr}</span>
           <span class="history-compliance">${s.compliance ?? '—'}% compliance</span>
         </div>
-        <div class="history-metrics">
+        <div class="history-metrics" style="grid-template-columns:repeat(3,1fr)">
           <div class="history-metric">
             <span class="metric-label">Bloat</span>
             <span class="metric-value">${s.bloating ?? '—'}</span>
           </div>
           <div class="history-metric">
-            <span class="metric-label">Pain</span>
+            <span class="metric-label">Gas Pain</span>
             <span class="metric-value">${s.pain ?? '—'}</span>
           </div>
           <div class="history-metric">
@@ -1294,11 +1355,15 @@ function renderHistory() {
             <span class="metric-value">${s.fatigue ?? '—'}</span>
           </div>
           <div class="history-metric">
+            <span class="metric-label">Tightness</span>
+            <span class="metric-value">${s.tightness ?? '—'}</span>
+          </div>
+          <div class="history-metric">
             <span class="metric-label">Overall</span>
             <span class="metric-value">${s.overall ?? '—'}</span>
           </div>
           <div class="history-metric">
-            <span class="metric-label">Entries</span>
+            <span class="metric-label">Bristol</span>
             <span class="metric-value">${bristolLog.length || '—'}</span>
           </div>
         </div>
@@ -1316,8 +1381,8 @@ function renderHistory() {
 function renderSummary() {
   const data = loadData();
   const keys = Object.keys(data).sort().slice(-7);
-  const metrics = ['bloating','pain','fatigue','overall'];
-  const labels = { bloating: 'Bloating', pain: 'Gas Pain', fatigue: 'Fatigue', overall: 'Wellbeing' };
+  const metrics = ['bloating','pain','fatigue','tightness','overall'];
+  const labels = { bloating: 'Bloating', pain: 'Gas Pain', fatigue: 'Fatigue', tightness: 'Abd. Tightness', overall: 'Wellbeing' };
 
   // Trends
   let trendHtml = '';
@@ -1465,14 +1530,6 @@ async function installApp() {
   const key = getTodayKey();
   const s = data[key]?.symptoms;
   if (s) {
-    ['bloating','pain','fatigue','overall'].forEach(m => {
-      if (s[m]) {
-        symptomState[m] = s[m];
-        document.getElementById(`${m}-val`).textContent = s[m] + '/5';
-        const btns = document.querySelectorAll(`#${m}-scale .scale-btn`);
-        if (btns[s[m]-1]) btns[s[m]-1].classList.add('selected');
-      }
-    });
     if (s.notes) document.getElementById('symptomNotes').value = s.notes;
     if (s.savedAt) {
       const savedEl = document.getElementById('symptoms-recorded-at');
@@ -1483,7 +1540,7 @@ async function installApp() {
       }
     }
   }
-  renderBristolLog();
+  renderAllSymptomLogs();
 })();
 </script>
 </body>
