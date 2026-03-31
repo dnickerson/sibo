@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sibo-protocol-v6';
+const CACHE_NAME = 'sibo-protocol-v7';
 
 const ASSETS = [
   '/sibo/',

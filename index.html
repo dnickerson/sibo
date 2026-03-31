@@ -761,7 +761,7 @@
     <div class="header-top">
       <div>
         <div class="app-title">SIBO Protocol</div>
-        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.3</span></div>
+        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.4</span></div>
       </div>
       <div class="date-display">
         <span class="current-time" id="clockDisplay">--:--</span>
@@ -1054,7 +1054,11 @@ const SCHEDULE = [
 // ─── STATE ──────────────────────────────────────────────────────────────────
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0,10);
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function loadData() {
