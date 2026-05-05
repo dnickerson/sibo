@@ -752,6 +752,90 @@
   }
 
   .recorded-at span { color: var(--accent2); }
+
+  /* Food block (per-meal, on Today timeline) */
+  .food-block {
+    margin: 6px 0 0;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .food-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+
+  .food-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    transition: border-color 0.2s;
+    min-height: 44px;
+  }
+
+  .food-input:focus {
+    outline: none;
+    border-color: var(--accent3);
+  }
+
+  .food-input::placeholder { color: var(--text3); }
+
+  .food-recorded-at {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 4px;
+    text-align: right;
+    letter-spacing: 0.5px;
+  }
+
+  .food-recorded-at span { color: var(--accent2); }
+
+  /* History meals/flights sub-sections */
+  .history-meals,
+  .history-flights {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .history-meals-label,
+  .history-flights-label {
+    color: var(--text3);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+
+  .history-meal-line {
+    display: block;
+  }
+
+  .history-meal-name {
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .history-meal-time {
+    color: var(--text3);
+    font-size: 11px;
+    margin: 0 6px;
+  }
 </style>
 </head>
 <body>
@@ -761,7 +845,7 @@
     <div class="header-top">
       <div>
         <div class="app-title">SIBO Protocol</div>
-        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.4</span></div>
+        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.5</span></div>
       </div>
       <div class="date-display">
         <span class="current-time" id="clockDisplay">--:--</span>
@@ -792,6 +876,12 @@
   <!-- SYMPTOMS -->
   <div class="section" id="section-symptoms">
     <div class="symptom-section">
+      <div class="symptom-card">
+        <div class="symptom-card-title">Flight Log <span class="info-pill">GA piloting</span></div>
+        <button class="log-entry-btn" onclick="logFlight()">+ Log Flight</button>
+        <div id="flight-log-list"></div>
+      </div>
+
       <div class="symptom-card">
         <div class="symptom-card-title">Daily Symptom Log</div>
 
@@ -1083,6 +1173,84 @@ function setCheck(itemId, value) {
   saveData(data);
 }
 
+// ─── MEALS ──────────────────────────────────────────────────────────────────
+
+function getMeal(mealId) {
+  const data = loadData();
+  const key = getTodayKey();
+  return data[key]?.meals?.[mealId] || null;
+}
+
+function saveMeal(mealId, text) {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]) data[key] = { checks: {}, symptoms: null };
+  if (!data[key].meals) data[key].meals = {};
+  const trimmed = text.trim();
+  if (trimmed === '') {
+    delete data[key].meals[mealId];
+  } else {
+    data[key].meals[mealId] = { text: trimmed, at: new Date().toISOString() };
+  }
+  saveData(data);
+}
+
+function handleMealBlur(mealId, el) {
+  const text = el.value;
+  const prev = getMeal(mealId);
+  const prevText = prev?.text || '';
+  if (text.trim() === prevText.trim()) return;
+  saveMeal(mealId, text);
+  const stampEl = document.getElementById(`food-${mealId}-stamp`);
+  const updated = getMeal(mealId);
+  if (updated) {
+    stampEl.querySelector('span').textContent = fmtTime(updated.at);
+    stampEl.style.display = 'block';
+  } else {
+    stampEl.style.display = 'none';
+  }
+  const labelMap = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+  showToast(`✓ ${labelMap[mealId]} saved`);
+}
+
+// ─── FLIGHT LOG ─────────────────────────────────────────────────────────────
+
+function logFlight() {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]) data[key] = { checks: {}, symptoms: null };
+  if (!data[key].flightLog) data[key].flightLog = [];
+  data[key].flightLog.push({ at: new Date().toISOString() });
+  saveData(data);
+  renderFlightLog();
+  showToast('✓ Flight logged');
+}
+
+function renderFlightLog() {
+  const data = loadData();
+  const key = getTodayKey();
+  const log = data[key]?.flightLog || [];
+  const container = document.getElementById('flight-log-list');
+  if (!container) return;
+  if (log.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = log.slice().reverse().map((entry, i) => `
+    <div class="bristol-entry-item">
+      <span class="bristol-entry-type">Flight</span>
+      <span class="bristol-entry-time">${fmtTime(entry.at)}</span>
+      <button onclick="removeFlightEntry(${log.length - 1 - i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function removeFlightEntry(idx) {
+  const data = loadData();
+  const key = getTodayKey();
+  if (!data[key]?.flightLog) return;
+  data[key].flightLog.splice(idx, 1);
+  saveData(data);
+  renderFlightLog();
+  showToast('Entry removed');
+}
+
 // ─── CLOCK ──────────────────────────────────────────────────────────────────
 
 function updateClock() {
@@ -1138,6 +1306,25 @@ function renderTimeline() {
           <div class="reminder-tag tag-${item.tag}">${tagLabels[item.tag]}</div>
         </div>`;
     });
+
+    if (block.id === 'breakfast' || block.id === 'lunch' || block.id === 'dinner') {
+      const meal = getMeal(block.id);
+      const text = meal?.text || '';
+      const stamp = meal?.at ? fmtTime(meal.at) : '';
+      const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      html += `
+        <div class="food-block">
+          <div class="food-label">Food</div>
+          <textarea
+            class="food-input"
+            id="food-${block.id}"
+            rows="2"
+            placeholder="What you ate (tap to dictate)"
+            onblur="handleMealBlur('${block.id}', this)"
+          >${safeText}</textarea>
+          <div class="food-recorded-at" id="food-${block.id}-stamp" style="display:${stamp ? 'block' : 'none'}">Logged <span>${stamp}</span></div>
+        </div>`;
+    }
 
     html += `</div>`;
   });
@@ -1338,6 +1525,23 @@ function renderHistory() {
     const bristolSummary = bristolLog.length > 0
       ? bristolLog.map(b => `Type ${b.type} <span style="color:var(--text3)">${fmtTime(b.at)}</span>`).join(' · ')
       : null;
+
+    const meals = entry.meals || {};
+    const mealOrder = ['breakfast', 'lunch', 'dinner'];
+    const mealLabels = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
+    const mealLines = mealOrder
+      .filter(m => meals[m] && meals[m].text)
+      .map(m => {
+        const safeText = meals[m].text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<span class="history-meal-line"><span class="history-meal-name">${mealLabels[m]}</span><span class="history-meal-time">${fmtTime(meals[m].at)}</span>${safeText}</span>`;
+      })
+      .join('');
+
+    const flightLog = entry.flightLog || [];
+    const flightLine = flightLog.length > 0
+      ? `<div class="history-flights"><span class="history-flights-label">✈ ${flightLog.length} flight${flightLog.length === 1 ? '' : 's'} ·</span>${flightLog.map(f => fmtTime(f.at)).join(', ')}</div>`
+      : '';
+
     html += `
       <div class="history-entry">
         <div class="history-date">
@@ -1371,6 +1575,8 @@ function renderHistory() {
           </div>
         </div>
         ${bristolSummary ? `<div class="history-note" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;font-style:normal"><span style="color:var(--text3);font-size:10px;letter-spacing:1px;text-transform:uppercase">Bristol · </span>${bristolSummary}</div>` : ''}
+        ${mealLines ? `<div class="history-meals"><span class="history-meals-label">Meals</span>${mealLines}</div>` : ''}
+        ${flightLine}
         ${s.savedAt ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-top:6px">Saved ${fmtTime(s.savedAt)}</div>` : ''}
         ${s.notes ? `<div class="history-note">${s.notes}</div>` : ''}
       </div>`;
@@ -1544,6 +1750,7 @@ async function installApp() {
     }
   }
   renderAllSymptomLogs();
+  renderFlightLog();
 })();
 </script>
 </body>
