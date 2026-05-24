@@ -792,6 +792,16 @@
 
   .food-input::placeholder { color: var(--text3); }
 
+  /* Saving indicator on food input */
+  .food-saving {
+    font-size: 10px;
+    color: var(--accent3);
+    margin-top: 4px;
+    text-align: right;
+    letter-spacing: 0.5px;
+    min-height: 16px;
+  }
+
   .food-recorded-at {
     font-size: 10px;
     color: var(--text3);
@@ -845,7 +855,7 @@
     <div class="header-top">
       <div>
         <div class="app-title">SIBO Protocol</div>
-        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.5</span></div>
+        <div class="app-subtitle">Treatment Tracker <span style="opacity:0.6;font-size:10px;letter-spacing:1px">v1.9</span></div>
       </div>
       <div class="date-display">
         <span class="current-time" id="clockDisplay">--:--</span>
@@ -963,6 +973,19 @@
           <button class="bristol-btn type7" onclick="setBristol(7,this)">7</button>
         </div>
         <div class="bristol-legend">Constipation ← 1·2·3 · 4 · 5·6·7 → Diarrhea</div>
+        <div class="symptom-row" style="margin-top:12px;margin-bottom:0">
+          <div class="symptom-label"><span>Gas During BM</span><span style="font-size:11px;color:var(--text3)">optional</span></div>
+          <div class="scale-buttons" id="bristol-gas-scale">
+            <button class="scale-btn" onclick="setBristolGas(0,this)" title="None">0</button>
+            <button class="scale-btn" onclick="setBristolGas(1,this)" title="Mild">1</button>
+            <button class="scale-btn" onclick="setBristolGas(2,this)" title="Moderate">2</button>
+            <button class="scale-btn" onclick="setBristolGas(3,this)" title="Significant">3</button>
+            <button class="scale-btn" onclick="setBristolGas(4,this)" title="Severe">4</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:3px;padding:0 2px">
+            <span>None</span><span>Mild</span><span>Moderate</span><span>Significant</span><span>Severe</span>
+          </div>
+        </div>
         <button class="log-entry-btn" onclick="logBristolEntry()">+ Log Bristol Entry</button>
         <div id="bristol-log-list"></div>
       </div>
@@ -1000,6 +1023,12 @@
       </div>
 
       <div class="summary-card">
+        <div class="summary-title">Motility & PRN Activity</div>
+        <div class="summary-subtitle">Last 7 Days</div>
+        <div id="motilityContainer"></div>
+      </div>
+
+      <div class="summary-card">
         <div class="summary-title">Breath Test Target</div>
         <div class="summary-subtitle">Baseline Values</div>
         <div class="trend-row">
@@ -1022,8 +1051,6 @@
     </div>
   </div>
 </div>
-
-
 
 <div class="toast" id="toast"></div>
 
@@ -1052,7 +1079,6 @@ const SCHEDULE = [
       { id: 'vitd3_am', name: 'Vitamin D3 5,000 IU', detail: 'Take with largest fat-containing meal', type: 'required', tag: 'required' },
       { id: 'centrum', name: 'Centrum Multivitamin', detail: 'Take with meal — provides Vitamin K and broad micronutrient support', type: 'required', tag: 'required' },
       { id: 'ginger_am', name: 'Ginger Tablet', detail: '5mg gingeroids — prokinetic support', type: 'required', tag: 'required' },
-      { id: 'papaya_am', name: 'Papaya Enzyme', detail: 'With meal — digestive support post-SIBO', type: 'warn', tag: 'discuss' },
     ]
   },
   {
@@ -1062,7 +1088,6 @@ const SCHEDULE = [
     targetHour: 12.5,
     items: [
       { id: 'iberogast_pm', name: 'Iberogast', detail: '20 drops in warm water', type: 'required', tag: 'required' },
-      { id: 'ibguard_pm', name: 'IBgard', detail: '1 capsule', type: 'required', tag: 'required' },
     ]
   },
   {
@@ -1072,8 +1097,6 @@ const SCHEDULE = [
     targetHour: 13,
     items: [
       { id: 'ginger_pm', name: 'Ginger Tablet', detail: '5mg gingeroids', type: 'required', tag: 'required' },
-      { id: 'papaya_pm', name: 'Papaya Enzyme', detail: 'With meal', type: 'warn', tag: 'discuss' },
-      { id: 'pepitas_lunch', name: 'Pepitas', detail: '1oz max — magnesium, zinc, tryptophan source', type: 'info', tag: 'prn' },
     ]
   },
   {
@@ -1093,7 +1116,6 @@ const SCHEDULE = [
     targetHour: 17.5,
     items: [
       { id: 'iberogast_eve', name: 'Iberogast', detail: '20 drops in warm water', type: 'required', tag: 'required' },
-      { id: 'ibguard_eve', name: 'IBgard', detail: '1 capsule', type: 'required', tag: 'required' },
     ]
   },
   {
@@ -1103,9 +1125,6 @@ const SCHEDULE = [
     targetHour: 18,
     items: [
       { id: 'ginger_eve', name: 'Ginger Tablet', detail: '5mg gingeroids', type: 'required', tag: 'required' },
-      { id: 'papaya_eve', name: 'Papaya Enzyme', detail: 'With meal', type: 'warn', tag: 'discuss' },
-      { id: 'pepitas_dinner', name: 'Pepitas', detail: '1oz max with dinner', type: 'info', tag: 'prn' },
-      { id: 'gasx_eve', name: 'Gas-X (if needed)', detail: 'After meal if bloating — more effective than bedtime', type: 'info', tag: 'prn' },
     ]
   },
   {
@@ -1135,6 +1154,7 @@ const SCHEDULE = [
     targetHour: 99,
     items: [
       { id: 'gasx_prn', name: 'Gas-X', detail: 'Simethicone — take after meals, not at bedtime', type: 'info', tag: 'prn' },
+      { id: 'ibguard_prn', name: 'IBgard', detail: '1 capsule — as needed for symptoms', type: 'info', tag: 'prn' },
       { id: 'banatrol_prn', name: 'Banatrol', detail: 'For diarrhea episodes — 2–3x daily during flare', type: 'info', tag: 'prn' },
       { id: 'prucalopride', name: 'Prucalopride (Motegrity)', detail: '1–2mg daily — discuss with doctor (constipation)', type: 'warn', tag: 'discuss' },
     ]
@@ -1175,6 +1195,9 @@ function setCheck(itemId, value) {
 
 // ─── MEALS ──────────────────────────────────────────────────────────────────
 
+// Debounce timers keyed by mealId
+const mealDebounceTimers = {};
+
 function getMeal(mealId) {
   const data = loadData();
   const key = getTodayKey();
@@ -1195,22 +1218,60 @@ function saveMeal(mealId, text) {
   saveData(data);
 }
 
+// Called on every input event — debounces the actual save by 1.5s
+// This means dictation pauses trigger a save rather than focus loss
+function handleMealInput(mealId, el) {
+  // Show a pending indicator immediately
+  const savingEl = document.getElementById(`food-${mealId}-saving`);
+  const stampEl = document.getElementById(`food-${mealId}-stamp`);
+  if (savingEl) { savingEl.textContent = 'saving…'; }
+
+  // Clear any pending save for this meal
+  if (mealDebounceTimers[mealId]) {
+    clearTimeout(mealDebounceTimers[mealId]);
+  }
+
+  // Schedule save 1.5s after last keystroke/dictation chunk
+  mealDebounceTimers[mealId] = setTimeout(() => {
+    const text = el.value;
+    saveMeal(mealId, text);
+    const updated = getMeal(mealId);
+    if (savingEl) { savingEl.textContent = ''; }
+    if (updated && stampEl) {
+      stampEl.querySelector('span').textContent = fmtTime(updated.at);
+      stampEl.style.display = 'block';
+    } else if (stampEl) {
+      stampEl.style.display = 'none';
+    }
+  }, 1500);
+}
+
+// Keep blur as a safety net to flush any pending debounce immediately
 function handleMealBlur(mealId, el) {
+  if (mealDebounceTimers[mealId]) {
+    clearTimeout(mealDebounceTimers[mealId]);
+    delete mealDebounceTimers[mealId];
+  }
   const text = el.value;
   const prev = getMeal(mealId);
   const prevText = prev?.text || '';
-  if (text.trim() === prevText.trim()) return;
+  // Only save if content actually changed
+  if (text.trim() === prevText.trim()) {
+    const savingEl = document.getElementById(`food-${mealId}-saving`);
+    if (savingEl) savingEl.textContent = '';
+    return;
+  }
   saveMeal(mealId, text);
   const stampEl = document.getElementById(`food-${mealId}-stamp`);
+  const savingEl = document.getElementById(`food-${mealId}-saving`);
   const updated = getMeal(mealId);
-  if (updated) {
+  if (savingEl) savingEl.textContent = '';
+  if (updated && stampEl) {
     stampEl.querySelector('span').textContent = fmtTime(updated.at);
     stampEl.style.display = 'block';
-  } else {
+  } else if (stampEl) {
     stampEl.style.display = 'none';
   }
-  const labelMap = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner' };
-  showToast(`✓ ${labelMap[mealId]} saved`);
 }
 
 // ─── FLIGHT LOG ─────────────────────────────────────────────────────────────
@@ -1277,6 +1338,11 @@ function renderTimeline() {
   const checks = getTodayChecks();
   const currentHour = getCurrentHour();
   const container = document.getElementById('timelineContainer');
+
+  // Preserve any text currently being typed/dictated before re-rendering
+  const activeId = document.activeElement?.id;
+  const activeVal = document.activeElement?.value;
+
   let html = '';
   let total = 0, done = 0;
 
@@ -1309,7 +1375,10 @@ function renderTimeline() {
 
     if (block.id === 'breakfast' || block.id === 'lunch' || block.id === 'dinner') {
       const meal = getMeal(block.id);
-      const text = meal?.text || '';
+      // If user is actively editing this field, preserve their in-progress text
+      const fieldId = `food-${block.id}`;
+      const isActive = activeId === fieldId;
+      const text = isActive ? (activeVal || '') : (meal?.text || '');
       const stamp = meal?.at ? fmtTime(meal.at) : '';
       const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
       html += `
@@ -1317,11 +1386,13 @@ function renderTimeline() {
           <div class="food-label">Food</div>
           <textarea
             class="food-input"
-            id="food-${block.id}"
+            id="${fieldId}"
             rows="2"
             placeholder="What you ate (tap to dictate)"
+            oninput="handleMealInput('${block.id}', this)"
             onblur="handleMealBlur('${block.id}', this)"
           >${safeText}</textarea>
+          <div class="food-saving" id="food-${block.id}-saving"></div>
           <div class="food-recorded-at" id="food-${block.id}-stamp" style="display:${stamp ? 'block' : 'none'}">Logged <span>${stamp}</span></div>
         </div>`;
     }
@@ -1331,6 +1402,17 @@ function renderTimeline() {
 
   container.innerHTML = html;
   updateProgress(done, total);
+
+  // Restore focus if it was in a food field when timeline re-rendered
+  if (activeId && activeId.startsWith('food-')) {
+    const el = document.getElementById(activeId);
+    if (el && el !== document.activeElement) {
+      el.focus();
+      // Move cursor to end
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    }
+  }
 }
 
 function toggleCheck(itemId, el) {
@@ -1356,7 +1438,13 @@ function updateProgress(done, total) {
 // ─── SYMPTOMS ────────────────────────────────────────────────────────────────
 
 const SYMPTOM_METRICS = ['bloating', 'pain', 'fatigue', 'tightness', 'overall'];
-const symptomState = { bloating: null, pain: null, fatigue: null, tightness: null, overall: null, bristol: null };
+const symptomState = { bloating: null, pain: null, fatigue: null, tightness: null, overall: null, bristol: null, bristolGas: null };
+
+function setBristolGas(val, btn) {
+  symptomState.bristolGas = val;
+  document.querySelectorAll('#bristol-gas-scale .scale-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
 
 function setScale(metric, val, btn) {
   symptomState[metric] = val;
@@ -1379,7 +1467,6 @@ function logSymptomEntry(metric) {
   if (!data[key].symptomLog[metric]) data[key].symptomLog[metric] = [];
   data[key].symptomLog[metric].push({ value: symptomState[metric], at: new Date().toISOString() });
   saveData(data);
-  // deselect buttons
   document.querySelectorAll(`#${metric}-scale .scale-btn`).forEach(b => b.classList.remove('selected'));
   symptomState[metric] = null;
   renderSymptomLog(metric);
@@ -1433,11 +1520,14 @@ function logBristolEntry() {
   const key = getTodayKey();
   if (!data[key]) data[key] = { checks: {}, symptoms: null };
   if (!data[key].bristolLog) data[key].bristolLog = [];
-  data[key].bristolLog.push({ type: symptomState.bristol, at: new Date().toISOString() });
+  const entry = { type: symptomState.bristol, at: new Date().toISOString() };
+  if (symptomState.bristolGas !== null) entry.gas = symptomState.bristolGas;
+  data[key].bristolLog.push(entry);
   saveData(data);
-  // deselect
   document.querySelectorAll('.bristol-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#bristol-gas-scale .scale-btn').forEach(b => b.classList.remove('selected'));
   symptomState.bristol = null;
+  symptomState.bristolGas = null;
   renderBristolLog();
   showToast('✓ Bristol entry logged');
 }
@@ -1449,12 +1539,16 @@ function renderBristolLog() {
   const container = document.getElementById('bristol-log-list');
   if (!container) return;
   if (log.length === 0) { container.innerHTML = ''; return; }
-  container.innerHTML = log.slice().reverse().map((entry, i) => `
+  const gasLabels = ['No gas', 'Mild', 'Moderate', 'Significant', 'Severe'];
+  container.innerHTML = log.slice().reverse().map((entry, i) => {
+    const gasText = entry.gas !== undefined ? ` · <span style="color:var(--warn)">${gasLabels[entry.gas]} gas</span>` : '';
+    return `
     <div class="bristol-entry-item">
-      <span class="bristol-entry-type">Type ${entry.type}</span>
+      <span class="bristol-entry-type">Type ${entry.type}${gasText}</span>
       <span class="bristol-entry-time">${fmtTime(entry.at)}</span>
       <button onclick="removeBristolEntry(${log.length - 1 - i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;" title="Remove">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function removeBristolEntry(idx) {
@@ -1477,7 +1571,6 @@ function saveSymptoms() {
     if (i.tag !== 'prn') { total++; if (checks[i.id]) done++; }
   }));
   const now = new Date().toISOString();
-  // Derive latest value per metric from the log for summary/history
   const symLog = data[key].symptomLog || {};
   const latest = {};
   SYMPTOM_METRICS.forEach(m => {
@@ -1523,7 +1616,11 @@ function renderHistory() {
     const dateStr = d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
     const bristolLog = entry.bristolLog || [];
     const bristolSummary = bristolLog.length > 0
-      ? bristolLog.map(b => `Type ${b.type} <span style="color:var(--text3)">${fmtTime(b.at)}</span>`).join(' · ')
+      ? bristolLog.map(b => {
+          const gasLabels = ['No gas','Mild','Moderate','Significant','Severe'];
+          const gasText = b.gas !== undefined ? ` <span style="color:var(--warn);font-size:10px">(${gasLabels[b.gas]} gas)</span>` : '';
+          return `Type ${b.type}${gasText} <span style="color:var(--text3)">${fmtTime(b.at)}</span>`;
+        }).join(' · ')
       : null;
 
     const meals = entry.meals || {};
@@ -1540,6 +1637,14 @@ function renderHistory() {
     const flightLog = entry.flightLog || [];
     const flightLine = flightLog.length > 0
       ? `<div class="history-flights"><span class="history-flights-label">✈ ${flightLog.length} flight${flightLog.length === 1 ? '' : 's'} ·</span>${flightLog.map(f => fmtTime(f.at)).join(', ')}</div>`
+      : '';
+
+    // PRN medications used that day
+    const prnMap = { gasx_prn: 'Gas-X', ibguard_prn: 'IBgard', banatrol_prn: 'Banatrol', prucalopride: 'Motegrity' };
+    const checks = entry.checks || {};
+    const usedPRN = Object.entries(prnMap).filter(([id]) => checks[id]).map(([, name]) => name);
+    const prnLine = usedPRN.length > 0
+      ? `<div class="history-flights"><span class="history-flights-label">PRN ·</span>${usedPRN.join(', ')}</div>`
       : '';
 
     html += `
@@ -1577,6 +1682,7 @@ function renderHistory() {
         ${bristolSummary ? `<div class="history-note" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;font-style:normal"><span style="color:var(--text3);font-size:10px;letter-spacing:1px;text-transform:uppercase">Bristol · </span>${bristolSummary}</div>` : ''}
         ${mealLines ? `<div class="history-meals"><span class="history-meals-label">Meals</span>${mealLines}</div>` : ''}
         ${flightLine}
+        ${prnLine}
         ${s.savedAt ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-top:6px">Saved ${fmtTime(s.savedAt)}</div>` : ''}
         ${s.notes ? `<div class="history-note">${s.notes}</div>` : ''}
       </div>`;
@@ -1593,7 +1699,6 @@ function renderSummary() {
   const metrics = ['bloating','pain','fatigue','tightness','overall'];
   const labels = { bloating: 'Bloating', pain: 'Gas Pain', fatigue: 'Fatigue', tightness: 'Abd. Tightness', overall: 'Wellbeing' };
 
-  // Trends
   let trendHtml = '';
   metrics.forEach(m => {
     const vals = keys.map(k => data[k]?.symptoms?.[m]).filter(v => v !== null && v !== undefined);
@@ -1613,7 +1718,6 @@ function renderSummary() {
   });
   document.getElementById('trendContainer').innerHTML = trendHtml || '<div style="color:var(--text3);font-size:11px;padding:8px 0">Log symptoms daily to see trends</div>';
 
-  // Compliance
   let compHtml = '';
   if (keys.length === 0) {
     compHtml = '<div style="color:var(--text3);font-size:11px;padding:8px 0">No compliance data yet</div>';
@@ -1630,6 +1734,57 @@ function renderSummary() {
     }
   }
   document.getElementById('complianceContainer').innerHTML = compHtml;
+
+  // Motility & PRN
+  const PRN_IDS = { gasx_prn: 'Gas-X', ibguard_prn: 'IBgard', banatrol_prn: 'Banatrol', prucalopride: 'Motegrity' };
+  let motilityHtml = '';
+  if (keys.length === 0) {
+    motilityHtml = '<div style="color:var(--text3);font-size:11px;padding:8px 0">No data yet</div>';
+  } else {
+    // BM frequency
+    const bmCounts = keys.map(k => (data[k]?.bristolLog || []).length);
+    const totalBMs = bmCounts.reduce((a, b) => a + b, 0);
+    const avgBMs = (totalBMs / keys.length).toFixed(1);
+
+    // Bristol type average (ideal is 4)
+    const allTypes = keys.flatMap(k => (data[k]?.bristolLog || []).map(b => b.type));
+    const avgType = allTypes.length > 0 ? (allTypes.reduce((a, b) => a + b, 0) / allTypes.length).toFixed(1) : null;
+    const typeColor = avgType !== null
+      ? (Math.abs(avgType - 4) <= 0.75 ? 'var(--accent)' : Math.abs(avgType - 4) <= 1.5 ? 'var(--warn)' : 'var(--danger)')
+      : 'var(--text3)';
+
+    // Gas during BM average
+    const gasEntries = keys.flatMap(k => (data[k]?.bristolLog || []).filter(b => b.gas !== undefined).map(b => b.gas));
+    const avgGas = gasEntries.length > 0 ? (gasEntries.reduce((a, b) => a + b, 0) / gasEntries.length).toFixed(1) : null;
+    const gasLabels = ['None', 'Mild', 'Moderate', 'Significant', 'Severe'];
+    const gasColor = avgGas !== null
+      ? (avgGas <= 1 ? 'var(--accent)' : avgGas <= 2 ? 'var(--warn)' : 'var(--danger)')
+      : 'var(--text3)';
+
+    // PRN usage — count days each was used
+    const prnDays = {};
+    Object.keys(PRN_IDS).forEach(id => {
+      prnDays[id] = keys.filter(k => data[k]?.checks?.[id]).length;
+    });
+
+    motilityHtml += `
+      <div class="trend-row"><span class="trend-label">Avg BMs / Day</span><span class="trend-value">${avgBMs}</span></div>
+      <div class="trend-row"><span class="trend-label">Avg Bristol Type</span><span class="trend-value" style="color:${typeColor}">${avgType !== null ? avgType + ' / 7' : '—'}</span></div>
+      <div class="trend-row"><span class="trend-label">Avg Gas w/ BM</span><span class="trend-value" style="color:${gasColor}">${avgGas !== null ? gasLabels[Math.round(avgGas)] : '—'}</span></div>`;
+
+    // PRN rows — only show ones that were used at least once
+    const usedPRN = Object.entries(prnDays).filter(([, days]) => days > 0);
+    if (usedPRN.length > 0) {
+      motilityHtml += `<div style="font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:10px 0 4px">PRN Usage (days used / 7)</div>`;
+      usedPRN.forEach(([id, days]) => {
+        const color = days >= 5 ? 'var(--danger)' : days >= 3 ? 'var(--warn)' : 'var(--text2)';
+        motilityHtml += `<div class="trend-row"><span class="trend-label">${PRN_IDS[id]}</span><span class="trend-value" style="color:${color}">${days} / ${keys.length}</span></div>`;
+      });
+    } else {
+      motilityHtml += `<div style="color:var(--text3);font-size:11px;padding:8px 0">No PRN medications used this week</div>`;
+    }
+  }
+  document.getElementById('motilityContainer').innerHTML = motilityHtml;
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
@@ -1696,7 +1851,13 @@ function exportData() {
 updateClock();
 setInterval(updateClock, 30000);
 renderTimeline();
-setInterval(renderTimeline, 60000);
+
+// Timeline auto-refresh: skip if user is actively in a food field
+setInterval(() => {
+  const active = document.activeElement;
+  if (active && active.classList.contains('food-input')) return;
+  renderTimeline();
+}, 60000);
 
 // ─── SERVICE WORKER ──────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
